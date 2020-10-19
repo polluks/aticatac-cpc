@@ -550,8 +550,53 @@ player_vs_baddie
     ret
 
 touching_boss
-    call health_decay
-    ret
+    ld a, (room_number)
+    cp 0x55
+    jp nz, not_frank
+
+    ld a, wrench
+    ld hl, pocket1    
+    cp (hl)
+    jp z, kill_frank
+
+    inc hl
+    cp (hl)
+    jp z, kill_frank
+
+    inc hl
+    cp (hl)
+    jp z, kill_frank    
+
+not_frank
+    ld a, (dracula_room)
+    ld b, a
+    ld a, (room_number)
+    cp b
+    jp nz, not_drac
+
+    ld a, crucifix
+    ld hl, pocket1    
+    cp (hl)
+    ret z
+
+    inc hl
+    cp (hl)
+    ret z
+
+    inc hl
+    cp (hl)
+    ret z
+
+not_drac
+    jp health_decay
+
+kill_frank
+    call kill_sprite
+    ld a, 1
+    ld (frank_dead), a
+
+    ld bc, 0x845
+    jp add_to_score
 
 player_character
     defb 0
