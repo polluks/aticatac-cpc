@@ -1,15 +1,14 @@
 menu_tasks
+    ld a, (menu_state)
+    and a
+    jr nz, game_starting
+
 	call clear_heroes
 
     SELECT_BANK sprite_bank_config
 
-    BORDER_ON hw_brightRed
     call update_heroes
-
-    BORDER_ON hw_skyBlue
     call update_menu
-
-    BORDER_OFF
 
     SELECT_BANK item_bank_config
 
@@ -22,7 +21,21 @@ menu_tasks
     ret z
 
 start_the_game
-    ld hl, NoMusic_Start                ; can't stop music and keep sound playing, so play empty music track
+    ld a, 175                           ; wait 3.5 seconds for game start tune to play
+    ld (menu_state), a
+
+    ld hl, atic_Start
+    ld d, 1
+    jp init_sound_system
+
+game_starting
+    ld a, (menu_state)
+    dec a
+    ld (menu_state), a
+    ret nz
+
+    ld hl, NoMusic_Start                ; Play empty music track
+    ld d, 0
     call init_sound_system
 
     call wait_vsync
@@ -32,6 +45,13 @@ start_the_game
     jp switch_game_state
 
 init_menu
+    xor a
+    ld (menu_state), a
+
+    ld hl, atic_Start
+    ld d, a
+    call init_sound_system
+
     SELECT_BANK room_bank_config
     
     ld hl, font_data_mode1
@@ -136,6 +156,16 @@ character_moving_right
 	and 0x0f
 	ld (player_frame), a
 
+    cp player_step_frame1
+    jr z, step_sound_menu
+
+    cp player_step_frame2
+    jr nz, no_step_sound_menu
+
+step_sound_menu
+    call play_step_sound
+
+no_step_sound_menu
     ld a, c
     cp b
     ret nz
@@ -174,6 +204,7 @@ character_selected
     ld a, serf_height
     ld b, character_serf
     ld c, item_barrel
+    ld d, 0
     jr save_selection
 
 selected_knight
@@ -187,6 +218,7 @@ selected_knight
     ld a, knight_height
     ld b, character_knight
     ld c, item_clock
+    ld d, 1
     jr save_selection
 
 selected_wizard
@@ -200,6 +232,7 @@ selected_wizard
     ld a, wizard_height
     ld b, character_wizard
     ld c, item_bookcase
+    ld d, 0
 
 save_selection
     ld (selected_player), hl
@@ -208,6 +241,8 @@ save_selection
     ld (player_character), a
     ld a, c
     ld (magic_door), a
+    ld a, d
+    ld (weapon_rotates), a
     ret
 
 check_keys    
@@ -234,9 +269,7 @@ point_left
 
     ld a, 1
     ld (characters_moving), a 
-
-    call play_menu_sound
-    ret
+    jp play_step_sound
 
 menu_keyboard_right
     bit player_right_bit, a
@@ -260,14 +293,14 @@ point_right
     ld (player_orientation), a
 
     ld a, 1
-    ld (characters_moving), a 
+    ld (characters_moving), a
 
-    call play_menu_sound
+play_step_sound
+    push bc
+    ld e, sound_steps
+    call play_lowpriority_sfx
+    pop bc
     ret
-
-play_menu_sound
-    ld e, sound_menu                         ; sfx number
-    jp play_sfx
 
 clear_heroes
 	ld a, (player_select_x)
@@ -327,6 +360,9 @@ update_heroes
 	ld (player_select_x), a
 
     ret
+
+menu_state
+    defb 0x00
 
 characters_moving
     defb 0x00

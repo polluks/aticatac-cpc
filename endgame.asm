@@ -1,5 +1,5 @@
 init_endgame
-    ld a, 50               ; wait 1 second on this screen before accepting any key press to continue.
+    ld a, 100               ; wait 2 seconds on this screen before accepting any key press to continue (and for end tune to play)
     ld (end_key_delay), a
 
     SELECT_BANK room_bank_config
@@ -23,7 +23,7 @@ not_visited
     ld ix, game_over_percentage_text
 
     cp end_room
-    jr nz, not_got_em_all
+    jr c, not_got_em_all
 
     ld (ix + 11), "1"
     ld (ix + 12), "0"
@@ -55,20 +55,28 @@ not_got_em_all
 show_rest_of_end
     ld a, (game_over)
     cp game_completed                       ; did player finish the game?
-    jp nz, not_completed_end
+    jr nz, not_completed_end
 
     ld ix, game_over_congrats_text          ; if so, show congrats message
     call show_text
 
     ld ix, game_over_escaped_text
     call show_text
+
+    ld d, 4                                 ; tune number for completed
     jr no_game_over_message                 ; but not game over message
 
 not_completed_end
     ld ix, game_over_text
     call show_text
+    ld d, 2                                 ; tune number for end of game
 
 no_game_over_message                        ; always show these stats though...
+    ld hl, atic_Start
+    call init_sound_system
+
+    SELECT_BANK room_bank_config    
+
     ld hl, game_time
     ld de, game_over_time_text + 11
     ld bc, 6
@@ -105,9 +113,4 @@ wait_for_keypress
     jp switch_game_state
 
 end_key_delay
-    defb 0x00
-
-visited_count
-    defb 0x00
-visited_bcd
     defb 0x00

@@ -4,13 +4,13 @@ switch_game_state
 
     ld a, b
     cp state_menu
-    jp z, select_menu
+    jr z, select_menu
 
     cp state_game
-    jp z, select_game
+    jr z, select_game
 
     cp state_falling
-    jp z, select_falling
+    jr z, select_falling
 
     cp state_end
     jp z, select_end
@@ -19,10 +19,7 @@ switch_game_state
 
 select_menu
     ld hl, menu_tasks
-    ld (current_game_state), hl
-
-    ld hl, atic_title_Start
-    call init_sound_system
+    ld (current_game_state + 1), hl
 
     ld hl, menu_interrupts
     ld (current_interrupts), hl
@@ -36,9 +33,38 @@ select_menu
     call clear_screens
     jp init_menu
 
+select_falling
+    ld hl, falling_tasks
+    ld (current_game_state + 1), hl
+
+    ld hl, falling_interrupts
+    ld (current_interrupts), hl
+
+    call clear_room
+
+    ld a, (hidden_screen_base_address)
+    xor 0x40
+    call clear_room2
+
+    call reset_sprites
+    call reset_weapon
+
+    xor a
+    ld (save_fall_data), a
+    ld (save_fall_data + 1), a
+
+    ld a, 1
+    ld (still_falling), a
+
+    ld a, -1
+    ld (fall_index), a
+
+    ld e, sound_p_fall
+    jp play_sfx    
+
 select_game
     ld hl, game_tasks
-    ld (current_game_state), hl
+    ld (current_game_state + 1), hl
 
     ld hl, game_interrupts
     ld (current_interrupts), hl
@@ -52,11 +78,14 @@ select_game
     ld (game_over), a
     ld (heartbeat), a
     ld (frank_dead), a
+    ld (mummy_angry), a
+    ld (game_paused), a
 
     inc a
     ld (room_changed), a
+    ld (saved_room_number), a
 
-    ; ld a, room_dracula
+    ; ld a, 0x64
     ; ld (room_number), a
 
     call init_player
@@ -65,7 +94,6 @@ select_game
     call init_doors
     call init_collectables
     call init_score
-    call reset_sprites
 
     call draw_panel
 
@@ -102,40 +130,15 @@ reset_room_count_loop
     ld bc, 0x4000
     ldir
 
+; hunchback should be moved back to doorway
+    ld iy, boss_hunchback
+    ld (iy + 14), 44
+    ld (iy + 15), 32
     ret
-
-select_falling
-    ld hl, falling_tasks
-    ld (current_game_state), hl
-
-    ld hl, falling_interrupts
-    ld (current_interrupts), hl
-
-    call clear_room
-
-    ld a, (hidden_screen_base_address)
-    xor 0x40
-    call clear_room2
-
-    call reset_sprites
-    call reset_weapon
-
-    xor a
-    ld (save_fall_data), a
-    ld (save_fall_data + 1), a
-
-    ld a, 1
-    ld (still_falling), a
-
-    ld a, -1
-    ld (fall_index), a
-
-    ld e, sound_menu
-    jp play_sfx
 
 select_end
     ld hl, end_tasks
-    ld (current_game_state), hl
+    ld (current_game_state + 1), hl
     ld hl, end_game_interrupts
     ld (current_interrupts), hl
 
@@ -156,3 +159,6 @@ dont_clear_screens
 
 do_ending
     jp init_endgame
+
+game_paused
+    defb 0x00

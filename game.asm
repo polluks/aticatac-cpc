@@ -1,4 +1,8 @@
 game_tasks
+    ld a, (game_paused)
+    and a
+    jp nz, game_is_paused
+
     SELECT_BANK item_bank_config
     
     ld a, (room_changed)
@@ -13,7 +17,7 @@ game_tasks
 
     ld a, (do_pockets)
     and a
-    jp z, no_pockets_to_update
+    jr z, no_pockets_to_update
     
     dec a
     ld (do_pockets), a
@@ -22,7 +26,7 @@ game_tasks
 no_pockets_to_update
     ld a, (erase_food_with_index + 1)
     and a
-    jp z, tombstone_draw
+    jr z, tombstone_draw
 
     ld ixh, a
     ld a, (erase_food_with_index)
@@ -36,7 +40,7 @@ no_pockets_to_update
 tombstone_draw
     ld a, (draw_tombstone_with_index + 1)
     and a
-    jp z, no_food_removal
+    jr z, no_food_removal
 
     ld ixh, a
     ld a, (draw_tombstone_with_index)
@@ -67,13 +71,11 @@ no_food_removal
     call check_doors
 
 skip_some_others
-    BORDER_ON hw_brightRed
     SELECT_BANK sprite_bank_config
     call erase_weapon
     call move_weapon
     call draw_weapon
 
-    BORDER_ON hw_brightBlue    
     SELECT_BANK baddie_bank_config
     
     ld ix, boss
@@ -88,9 +90,7 @@ skip_some_others
     ld ix, sprite3
     DO_SPRITE
 
-    BORDER_ON hw_brightWhite
     call check_weapon_hit
-
     call check_player_hit_baddie
 
     ld a, (this_rooms_food_count)
@@ -102,7 +102,7 @@ skip_some_others
     ld de, (door_to_toggle)
     ld a, d
     or e
-    jp z, skip_door_toggle
+    jr z, skip_door_toggle
 
     ld hl, 0
     ld (door_to_toggle), hl
@@ -122,12 +122,19 @@ ignore_doors
 	call nz, pickup_tapped
 
     SELECT_BANK item_bank_config
-    BORDER_OFF
 
     ld a, (game_over)
     and a
-    jp nz, all_over
+    jr nz, all_over
 
+    ld a, (keyboard_state + 5)
+    bit 4, a
+    jr nz, check_menu_key
+
+    ld a, 1
+    ld (game_paused), a
+
+check_menu_key
     ld a, (keyboard_state + 4)          ; m for menu
     bit 6, a
     ret nz
@@ -149,51 +156,67 @@ continue_player_transition
 
     ld a, (player_growing)
     cp player_disappearing
-    jp z, player_shrinking
+    jr z, player_shrinking
 
     ld a, (heartbeat)
     and 0x03
     cp 0x03
-    jp nz, continue_game    
+    jr nz, continue_game
 
     ld a, (current_player_height)
     ld b, a
     ld a, (actual_player_height)
     cp b
-    jp z, transition_complete    
+    jr z, transition_complete    
 
     ld a, b
     inc a
     ld (current_player_height), a
+
+    cp 4
+    jr nz, no_sfx
+
+    ld e, sound_p_appear
+    call play_sfx    
+
+no_sfx
     ld hl, (current_height_gfx_offset)
     ld bc, -5
     add hl, bc
     ld (current_height_gfx_offset), hl
-    jp continue_game
+    jr continue_game
 
 player_shrinking
     ld a, (current_player_height)
     dec a
-    jp nz, still_shrinking
+    jr nz, still_shrinking
 
     call add_tombstone
     call make_player_appear
-    jp continue_game
+    jr continue_game
 
 still_shrinking
     ld a, (heartbeat)
     and 0x03
     cp 0x03
-    jp nz, continue_game
+    jr nz, continue_game  
 
     ld a, (current_player_height)
     dec a
     ld (current_player_height), a
+
+    cp 16
+    jr nz, no_sfx_shrink
+
+    ld e, sound_p_death
+    call play_sfx    
+
+no_sfx_shrink
     ld hl, (current_height_gfx_offset)
     ld bc, 5
     add hl, bc
     ld (current_height_gfx_offset), hl
-    jp continue_game
+    jr continue_game
 
 transition_complete
     xor a
@@ -201,5 +224,39 @@ transition_complete
 
 continue_game
     SELECT_BANK room_bank_config    
-    jp skip_some_others    
+    jp skip_some_others
+
+game_is_paused
+    SELECT_BANK sprite_bank_config
     
+    call erase_player
+    call draw_player
+
+    call erase_weapon
+    call draw_weapon
+
+    SELECT_BANK baddie_bank_config
+    
+    ld ix, boss
+    call erase_sprite
+    call draw_sprite
+
+    ld ix, sprite1
+    call erase_sprite
+    call draw_sprite
+
+    ld ix, sprite2
+    call erase_sprite
+    call draw_sprite
+
+    ld ix, sprite3
+    call erase_sprite
+    call draw_sprite
+
+    ld a, (keys_pressed)
+    and a
+    ret z
+
+    xor a    
+    ld (game_paused), a
+    ret

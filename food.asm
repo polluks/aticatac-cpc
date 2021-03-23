@@ -16,6 +16,26 @@ food_init_loop
     ld (ix + 17), 0xff
     ret
 
+replen_food
+    SELECT_BANK sprite_bank_config
+
+    ld ix, food_items
+    ld b, (food_items_end - food_items) / 8
+    ld de, 8
+
+food_replen_loop
+    ld a, (ix + 2)
+    and a
+    jr z, no_replen
+
+    dec a
+    ld (ix + 2), a
+
+no_replen    
+    add ix, de
+    djnz food_replen_loop
+    ret    
+
 add_tombstone
     ld ix, tombstones
     ld a, (num_lives)
@@ -82,12 +102,12 @@ check_food
     sub e
 
     bit 7, a
-    jp z, food_not_neg_x
+    jr z, food_not_neg_x
     neg
 
 food_not_neg_x
     cp 4
-    jp nc, cant_find_food
+    jr nc, cant_find_food
 
     ld a, (player_y)
     add average_player_height / 2    
@@ -99,32 +119,36 @@ food_not_neg_x
     sub e
 
     bit 7, a
-    jp z, food_not_neg_y
+    jr z, food_not_neg_y
     neg
 
 food_not_neg_y
     cp 12
-    jp nc, cant_find_food
+    jr nc, cant_find_food
 
     ld a, (ix + 0)
     cp type_tombstone
-    jp z, cant_find_food
+    jr z, cant_find_food
 
     cp type_mushroom
-    jp nz, remove_food
+    jr nz, remove_food
 
+    ld e, sound_clock
+    call play_sfx
+
+hdecay
     call health_decay
-    jp cant_find_food
+    jr cant_find_food
 
 remove_food
     call draw_food_item2
 
     SELECT_BANK sprite_bank_config
-    ld a, 1
+    ld a, food_respawn
     ld (ix + 2), a
     ld (erase_food_with_index), ix
 
-    ld e, sound_collect
+    ld e, sound_c_food
     call play_sfx
 
     call health_up
@@ -263,11 +287,11 @@ list_food_loop
 
     ld a, (ix + 1)
     cp c
-    jp nz, skip_food_item
+    jr nz, skip_food_item
 
     ld a, (ix + 2)
     and a
-    jp nz, skip_food_item
+    jr nz, skip_food_item
 
     ld a, (this_rooms_food_count)
     add a
@@ -284,6 +308,13 @@ list_food_loop
 
     ld hl, this_rooms_food_count
     inc (hl)
+
+    ld a, (hl)
+    cp max_food
+    jr c, skip_food_item
+
+    pop bc
+    ret
 
 skip_food_item
     pop bc

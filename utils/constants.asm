@@ -4,8 +4,10 @@ rotation_right      equ 0x60        ; landscape %01100000
 rotation_left       equ 0xe0        ; landscape %11100000
 
 max_doors           equ 16          ; per room
-max_food            equ 5           ; per room (includes mushrooms)
+max_food            equ 6           ; per room (includes mushrooms)
 player_width        equ 5           ; bytes
+
+food_respawn        equ 30          ; replen food after visiting this many rooms after pickup
 
 knight_height       equ 20
 wizard_height       equ 21
@@ -48,6 +50,9 @@ player_is_going_up      equ num_player_frames * 2
 player_is_going_left    equ num_player_frames * 4
 player_is_going_right   equ num_player_frames * 6
 default_frame           equ 5
+
+player_step_frame1      equ 0x06
+player_step_frame2      equ 0x0d
 
 ; player move bits based on joystick / keys pressed
 player_left_bit     equ 0
@@ -105,9 +110,20 @@ type_tombstone      equ 0x59
 interrupt_notReady		equ -2
 interrupt_firstValue	equ -1
 
-sound_collect       equ 1
-sound_explosion     equ 2
-sound_menu          equ 5
+sound_p_appear      equ 1       ;;
+sound_p_death       equ 2       ;;
+sound_c_food        equ 3       ;
+sound_thunder_1     equ 4       ;
+sound_thunder_2     equ 5       ;
+sound_thunder_3     equ 6       ;
+sound_clock         equ 7       ;?
+sound_steps         equ 8       ;
+sound_p_fall        equ 9       ;;
+sound_door          equ 10      ;
+sound_spell_bounce  equ 11      ;
+sound_spell         equ 12      ;
+
+sound_persist_time  equ 12      ; protect sound effect for this many frames so walking sound doesnt kill them.
 
 ; sprite states
 state_dead      equ 0
@@ -153,3 +169,4 @@ transition_time         equ 7
 
 crucifix                equ 0x09
 wrench                  equ 0x11
+the_red_key             equ 0x05

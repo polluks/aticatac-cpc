@@ -20,18 +20,46 @@ draw_room
     call update_collision_grid_for_items
 
     call try_teleport_dracula
+    call replen_food
 
 ; Reset data for new room.
     xor a
     ld (room_changed), a
 
-    ld a, (last_room_number)
+; Temporarily save current room sprite data
+    ld hl, sprite1
+    ld de, temp_sprite_data
+    ld bc, sprite_end - sprite1
+    ldir
+
+    ld a, (saved_room_number)
     ld b, a
     ld a, (room_number)
-    cp b
-    jr nz, not_gone_back
 
-not_gone_back
+    cp b
+    jr z, has_gone_back
+
+    call reset_sprites
+    jr gb1
+
+has_gone_back
+    ld hl, old_room_sprites
+    ld de, sprite1
+    ld bc, sprite_end - sprite1
+    ldir
+
+    call partial_reset_sprites
+
+gb1
+    ld hl, temp_sprite_data
+    ld de, old_room_sprites
+    ld bc, sprite_end - sprite1
+    ldir
+    
+    ld a, (last_room_number)
+    ld (saved_room_number), a
+
+ngb1
     ld a, r
     ld (random_seed), a
 
@@ -42,8 +70,6 @@ not_gone_back
     call init_boss    
     call reset_weapon
     call reset_food_collected
-
-    call map_doors
 
     call set_pens
 
@@ -235,13 +261,6 @@ calc_room_dimensions
     add l
     sub 12
     ld (max_y), a
-    ret
-
-save_old_room_info
-    ld hl, sprite1
-    ld de, old_room_sprites
-    ld bc, sprite_end - sprite1
-    ldir
     ret
 
 calculate_collision_grid
@@ -453,8 +472,10 @@ this_doors_index
     defb 0x00
 
 room_number
-    defb 0
+    defb 0x00
 last_room_number
+    defb 0x00
+saved_room_number
     defb 0x00
 
 room_changed

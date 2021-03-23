@@ -21,18 +21,18 @@ interrupt_callback
 	ld b, 0xf5
 	in a, (c)
 	rrca
-	jp nc, skipInitFirst
+	jr nc, skipInitFirst
 	ld a, interrupt_firstValue
 	ld (interrupt_index), a
 
 skipInitFirst
 	ld a, (interrupt_index)
 	cp interrupt_notReady
-	jp z, skipInterrupt
+	jr z, skipInterrupt
 
 	inc a
 	cp 6
-	jp nz, no_interrupt_reset
+	jr nz, no_interrupt_reset
 	xor a
 
 no_interrupt_reset
@@ -115,25 +115,17 @@ delay_mode0
 	jp set_logo_pens2
 
 interrupt_keyboard
-	BORDER_ON hw_brightMagenta
-
-	call read_keys
-
-	BORDER_OFF
-	ret
+	jp read_keys
 
 interrupt_clock
+	ld a, (game_paused)
+	and a
+	ret nz
+
 	ld a, (heartbeat)
 	cp 45
 	jp z, update_clock
 	ret
-
-; interrupt_previous_stack
-; 	dw 0
-
-; interrupt_stack
-; 	defs 256
-; interrupt_stack_start
 
 interrupt_index
 	db interrupt_notReady

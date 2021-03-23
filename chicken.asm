@@ -11,26 +11,33 @@ health_decay
 	and a
 	ret z
 	dec a
+if GOD_MODE
+	ret
+endif	
 	ld (health), a
 	ret
 
 health_down
+if GOD_MODE
+	ret
+endif
 	ld a, (health)
 	and a
 	ret z
 	sub 8
-	jp nc, hd1
+	jr nc, hd1
 
 	xor a
 
-hd1	ld (health), a
+hd1
+	ld (health), a
 	ret
 
 health_up
 	ld a, (health)
 	add 16
 	cp max_health
-	jp c, maximus
+	jr c, maximus
 	ld a, max_health
 
 maximus
@@ -47,7 +54,7 @@ update_chicken
 	cp b
 	ret z
 
-	jp nc, health_going_down
+	jr nc, health_going_down
 
 	inc a
 	ld (drawn_health), a
@@ -60,7 +67,7 @@ update_chicken
 	ret z
 
 	ld bc, chicken_full
-	jp update_carcass
+	jr update_carcass
 
 health_going_down
 	dec a
@@ -70,13 +77,13 @@ health_going_down
 	ld a, 30
 	sub b
 	cp 30
-	jp nz, not_dead_yet
+	jr nz, not_dead_yet
 
 	call decrease_lives
 
 	ld a, (game_over)
 	and a
-	call z, make_player_disappear
+	call z, make_player_disappear	
 	ret
 	
 not_dead_yet
